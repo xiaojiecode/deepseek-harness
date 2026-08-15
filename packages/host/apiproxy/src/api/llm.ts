@@ -10,6 +10,7 @@
 
 import type { RpcRequest, RpcResponse } from './rpc.ts'
 import type { ModelCatalogFailure, ModelProviderGroup } from './sessions.ts'
+import type { LlmSubscriptionUsageSnapshot } from '@deepseek-ai/dsh-llm'
 
 /** Wire view of one configurable provider. */
 export interface ConfigurableProviderView {
@@ -74,6 +75,12 @@ export interface LlmApi {
     }>,
     signal?: AbortSignal,
   ): Promise<RpcResponse<{ models: DiscoveredModelView[] }>>
+
+  /** Read cached or refreshed subscription usage for one provider route. */
+  subscriptionUsage(
+    request: RpcRequest<{ provider: string; refresh?: boolean }>,
+    signal?: AbortSignal,
+  ): Promise<RpcResponse<LlmSubscriptionUsageSnapshot>>
 }
 
 /** Wire view of one model an interrogated endpoint advertises. */
@@ -86,4 +93,5 @@ export interface DiscoveredModelView {
   contextWindow?: number
   /** Maximum output tokens, when disclosed. */
   maxTokens?: number
+  unavailableReason?: 'missing-model-metadata'
 }

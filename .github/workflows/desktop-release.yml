@@ -1,0 +1,57 @@
+name: Release desktop app
+
+on:
+  push:
+    tags:
+      - v*-desktop.*
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing desktop release tag
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  windows-x64:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build and publish signed desktop release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        with:
+          projectPath: apps/desktop
+          tauriScript: pnpm tauri
+          tagName: ${{ inputs.tag || github.ref_name }}
+          releaseName: DeepSeek Harness Desktop ${{ inputs.tag || github.ref_name }}
+          releaseBody: |
+            Community desktop preview based on DeepSeek Harness.
+
+            Highlights:
+            - Tauri 2 desktop shell for the local Harness web profile
+            - OpenCode Go quick connect, model import, and subscription usage
+            - Signed automatic updates through GitHub Releases
+
+            Requirement: install `@deepseek-ai/dsh` globally so the `dsh` executable is available on `PATH`.
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true
+          args: --target x86_64-pc-windows-msvc --bundles nsis,msi

@@ -238,10 +238,27 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
     const ns = namespace.ns
     // A pi-ai profile names the conventional reference only when this page is
     // about to store a key. Otherwise the provider keeps its native auth path.
-    const next = layout === 'pi-ai' && stringAt(draft, 'apiKeyEnv') === undefined
+    let next = layout === 'pi-ai' && stringAt(draft, 'apiKeyEnv') === undefined
       && stringAt(fallback, 'apiKeyEnv') === undefined && keyValue.length > 0
       ? setPath(draft, ['apiKeyEnv'], keyRef)
       : draft
+    // OpenCode Go uses its management listing as the connection handshake. A
+    // typed key must be accepted before either the credential or settings write
+    // lands; only ids known to the pinned pi-ai catalog are imported.
+    if (props.provider === 'opencode-go' && keyValue.length > 0) {
+      const response = await api.llm.discoverModels({ ...probe, apiKey: keyValue })
+      if (!response.result.ok) return response.result.error.message
+      const models = response.result.value.models
+        .filter(model => model.unavailableReason === undefined)
+        .map(model => ({
+          id: model.id,
+          ...model.name === undefined ? {} : { name: model.name },
+          ...model.contextWindow === undefined ? {} : { contextWindow: model.contextWindow },
+          ...model.maxTokens === undefined ? {} : { maxTokens: model.maxTokens },
+        }))
+      if (models.length === 0) return t('fetchEmpty')
+      next = setPath(next, ['models'], models)
+    }
     if (props.credentialOnly !== true) {
       // The same checker gates the submit button, so a card cannot reach this
       // with a bad row; it stays because the schema check below would refuse
@@ -497,7 +514,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
           || (props.credentialOnly !== true && modelFailure !== undefined)
           || shownKeyFailure !== undefined
           || (props.credentialRequired === true && keyValue.length === 0)}
-        submitLabel={props.submitLabel ?? 'apply'}
+        submitLabel={props.submitLabel ?? (props.provider === 'opencode-go' ? 'connectAndImport' : 'apply')}
         submitBusyLabel={props.submitBusyLabel ?? 'applying'}
         {...props.cancelLabel === undefined ? {} : { cancelLabel: props.cancelLabel }}
         onCancel={() => { props.onClose(false) }}

@@ -12,10 +12,10 @@
  * re-renders from pushed invalidations or the post-apply reload.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { IApiClient } from '@deepseek-ai/dsh-api-remotes/client'
-import { Button, IconPlusOutline16, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconPlusOutline16, IconRefreshOutline16, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-web-react'
 import { CustomProviderCard } from './CustomProviderCard.tsx'
 import { deriveKeyRef, messageOf, protocolChoices, providerUsable } from './store.ts'
@@ -377,6 +377,9 @@ function Loaded({ injected }: { injected: ModelsSectionInjected }): ReactNode {
                     : null}
                 </span>
               </div>
+              {row.entry.provider === 'opencode-go' && row.configured
+                ? <OpenCodeUsage api={api} t={t} />
+                : null}
               {open
                 ? renderProviderEditor({
                   target,
@@ -520,6 +523,47 @@ function Loaded({ injected }: { injected: ModelsSectionInjected }): ReactNode {
       >
         {deleteFailure === undefined ? null : <p className={styles['error']}>{deleteFailure}</p>}
       </Modal>
+    </div>
+  )
+}
+
+function OpenCodeUsage({ api, t }: { api: ModelsSectionInjected['api']; t: ModelsSectionInjected['t'] }): ReactNode {
+  type UsageValue = Extract<Awaited<ReturnType<IApiClient['llm']['subscriptionUsage']>>['result'], { ok: true }>['value']
+  const [state, setState] = useState<{ status: 'loading' | 'ready' | 'error'; value?: UsageValue; stale?: boolean }>({ status: 'loading' })
+  const refresh = (force = false): void => {
+    setState(previous => ({ ...previous, status: previous.value === undefined ? 'loading' : previous.status }))
+    void api.llm.subscriptionUsage({ provider: 'opencode-go', refresh: force }).then((response) => {
+      if (response.result.ok) setState({ status: 'ready', value: response.result.value })
+      else setState(previous => ({ ...previous, status: 'error', stale: previous.value !== undefined }))
+    }).catch(() => { setState(previous => ({ ...previous, status: 'error', stale: previous.value !== undefined })) })
+  }
+  useEffect(() => {
+    refresh()
+    const timer = window.setInterval(() => { if (!document.hidden) refresh() }, 60_000)
+    const visibility = (): void => { if (!document.hidden) refresh() }
+    document.addEventListener('visibilitychange', visibility)
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', visibility) }
+  }, [])
+  const value = state.value
+  return (
+    <div className={styles['usageBlock']} aria-label={t('usageTitle')}>
+      <div className={styles['usageHeader']}>
+        <span>{t('usageTitle')}</span>
+        <button type="button" className={styles['usageRefresh']} aria-label={t('usageRefresh')} title={t('usageRefresh')} onClick={() => { refresh(true) }}>
+          <IconRefreshOutline16 size={14} />
+        </button>
+      </div>
+      {value === undefined
+        ? <span className={styles['usageError']}>{state.status === 'loading' ? t('usageLoading') : t('usageError')}</span>
+        : value.windows.map(window => (
+          <div key={window.id} className={styles['usageRow']}>
+            <span className={styles['usageLabel']}>{t(window.id === '5h' ? 'usage5h' : window.id === '1w' ? 'usage1w' : 'usage1m')}</span>
+            <div className={styles['usageTrack']}><span className={`${styles['usageFill']} ${window.status === 'rate-limited' ? styles['usageLimited'] : ''}`} style={{ width: `${window.percent}%` }} /></div>
+            <span className={styles['usagePercent']}>{`${Math.round(window.percent)}%`}</span>
+            {window.resetsAt === undefined ? null : <time dateTime={window.resetsAt}>{new Date(window.resetsAt).toLocaleString()}</time>}
+          </div>
+        ))}
+      {state.stale ? <span className={styles['usageStale']}>{t('usageStale')}</span> : null}
     </div>
   )
 }

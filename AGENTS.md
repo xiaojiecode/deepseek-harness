@@ -47,6 +47,7 @@ packages/    @deepseek-ai/dsh-<pkg> workspaces at packages/<group>/<pkg>/
   util/        zero-dependency utilities
 python/      Python SDK and bundled runtime (see python/README.md)
 native/      @deepseek-ai/node-addon-landlock-run source of record (see native/README.md)
+apps/        CLI, Vite Web entry, and Tauri 2 desktop shell
 examples/    Runnable cordis.yml leaves over packages/examples bundles (see examples/AGENTS.md)
 .agents/     Agent workflows and Agent Notes (`notes/`)
 docs/        architecture, generated catalogs, postmortems, cookbook (see docs/AGENTS.md)
@@ -74,6 +75,14 @@ pnpm run hygiene        # knip + publint + workspace constraints + NodeNext cons
 pnpm run check:windows-wine  # ONLY when diagnosing a known Windows failure (needs wine); CI owns this signal
 pnpm run doc-sync       # all documentation gates; leaf list in scripts/run-gates.ts
 pnpm run website:build  # VitePress build (doubles as dead-link check)
+pnpm run desktop:dev    # Tauri 2 shell over the source-built dsh web profile
+pnpm run desktop:check  # report Tauri/Rust/WebView build prerequisites
+pnpm run desktop:build  # build the current platform's Tauri installers
+pnpm run desktop:package  # CI-safe build of every installer supported by this host
+pnpm run desktop:package:windows-x64  # NSIS + MSI on Windows x64
+pnpm run desktop:package:macos-arm64  # app + DMG on macOS arm64
+pnpm run desktop:package:linux-x64    # AppImage + DEB + RPM on Linux x64
+pnpm run desktop:package:linux-arm64  # AppImage + DEB + RPM on Linux arm64
 pnpm dsh --profile headless "task"  # run one task from source (needs DEEPSEEK_API_KEY)
 pnpm run demo:cordis    # the agent modifies its own runtime (needs key)
 pnpm run demo:acp       # ACP automation server (needs DEEPSEEK_API_KEY)

@@ -1131,6 +1131,31 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
   const pendingApprovals = new Map<RpcId, PendingApproval>()
   const muxQueues = new Set<FrameQueue<RpcRequest<MuxFrame>>>()
   const imageAdmissionChains = new WeakMap<Agent, Promise<void>>()
+  const usageCache = new Map<string, { value: Awaited<ReturnType<Context['llm']['subscriptionUsage']>>; at: number }>()
+  const usageInflight = new Map<string, Promise<Awaited<ReturnType<Context['llm']['subscriptionUsage']>>>>()
+  const cacheUsage = (provider: string, value: Awaited<ReturnType<Context['llm']['subscriptionUsage']>>): void => {
+    usageCache.set(provider, { value, at: Date.now() })
+    ctx.emit('llm/subscription-usage-updated', provider)
+  }
+  const refreshUsageAfterCall = (provider: string): void => {
+    if (usageInflight.has(provider)) return
+    const pending = ctx.llm.subscriptionUsage(provider, { refresh: true })
+    usageInflight.set(provider, pending)
+    void pending.then((value) => { cacheUsage(provider, value) }, () => undefined)
+      .finally(() => { if (usageInflight.get(provider) === pending) usageInflight.delete(provider) })
+  }
+  // A completed Go request invalidates the cached management snapshot. The
+  // refresh is detached from the response path and coalesced with RPC reads.
+  ctx.on('llm/stream', (options, next) => {
+    const source = next()
+    if (options.provider !== 'opencode-go') return source
+    return (async function* () {
+      for await (const chunk of source) {
+        yield chunk
+        if (chunk.type === 'finish') refreshUsageAfterCall('opencode-go')
+      }
+    })()
+  })
 
   /** Serialize image admission with model selection for one agent. */
   function serializeImageAdmission<T>(agent: Agent, operation: () => Promise<T>): Promise<T> {
@@ -3421,6 +3446,36 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             code: 'model-discovery-failed',
             message: error instanceof Error ? error.message : String(error),
             details: { settingsNs, ...baseURL === undefined ? {} : { baseURL } },
+          })
+        }
+      },
+
+      async subscriptionUsage(request, signal) {
+        const { provider, refresh } = request.payload
+        const cached = usageCache.get(provider)
+        if (!refresh && cached !== undefined && Date.now() - cached.at < 6 * 60 * 60 * 1000) {
+          return ok(request, cached.value)
+        }
+        let pending = usageInflight.get(provider)
+        if (pending === undefined) {
+          pending = ctx.llm.subscriptionUsage(provider, {
+            ...refresh === undefined ? {} : { refresh },
+            ...signal === undefined ? {} : { signal },
+          })
+          usageInflight.set(provider, pending)
+          void pending.then((value) => { cacheUsage(provider, value) }, () => undefined)
+            .finally(() => { if (usageInflight.get(provider) === pending) usageInflight.delete(provider) })
+        }
+        try {
+          return ok(request, await pending)
+        } catch (error: unknown) {
+          const code = (error as { code?: unknown } | null)?.code
+          return err(request, {
+            code: code === 'INVALID_CREDENTIAL' ? 'invalid-credential'
+              : code === 'GO_SUBSCRIPTION_REQUIRED' ? 'go-subscription-required'
+                : 'subscription-usage-failed',
+            message: error instanceof Error ? error.message : String(error),
+            details: { provider },
           })
         }
       },

@@ -21,6 +21,8 @@ declare module '@deepseek-ai/cordis' {
      * @mode emit
      */
     'llm/adapters-updated'(): void
+    /** Subscription usage cache invalidation for one provider route. */
+    'llm/subscription-usage-updated'(provider: string): void
   }
 }
 
@@ -227,6 +229,33 @@ export interface LlmDiscoveredModel {
   contextWindow?: number
   /** Maximum output tokens, when disclosed. */
   maxTokens?: number
+  /** Why a provider-advertised model cannot be imported into the local catalog. */
+  unavailableReason?: 'missing-model-metadata'
+}
+
+/** One subscription usage window returned by a provider management API. */
+export interface LlmSubscriptionUsageWindow {
+  /** Stable window key, ordered by the provider adapter. */
+  id: '5h' | '1w' | '1m'
+  /** Provider-reported percentage already consumed. */
+  percent: number
+  /** Whether the provider accepted the usage query. */
+  status: 'ok' | 'rate-limited'
+  /** Provider-reported reset instant, when available. */
+  resetsAt?: string
+}
+
+/** Snapshot returned by a registered subscription usage reader. */
+export interface LlmSubscriptionUsageSnapshot {
+  provider: string
+  fetchedAt: string
+  windows: readonly LlmSubscriptionUsageWindow[]
+}
+
+/** Options passed to a subscription usage reader. */
+export interface LlmSubscriptionUsageOptions {
+  refresh?: boolean
+  signal?: AbortSignal
 }
 
 /** One adapter-discovered model; catalog membership is advisory, not request validation. */

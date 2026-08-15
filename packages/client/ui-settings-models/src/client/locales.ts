@@ -21,6 +21,7 @@ export const en = {
   close: 'Close',
   cancel: 'Cancel',
   apply: 'Apply',
+  connectAndImport: 'Connect and import',
   applying: 'Applying…',
   savedProvider: 'Saved {provider}.',
   credentialConfigured: 'API key configured',
@@ -97,6 +98,14 @@ export const en = {
   onboardingSave: 'Save and continue',
   onboardingSaving: 'Saving…',
   keyRequired: 'Enter an API key to continue.',
+  usageTitle: 'Subscription usage',
+  usageRefresh: 'Refresh usage',
+  usageLoading: 'Loading usage…',
+  usageError: 'Usage unavailable',
+  usageStale: 'Showing the last successful value',
+  usage5h: '5h',
+  usage1w: '1w',
+  usage1m: '1m',
 }
 
 /** The settings.models namespace key union. */
@@ -121,6 +130,7 @@ export const zh: { [Key in keyof typeof en]: string } = {
   close: '关闭',
   cancel: '取消',
   apply: '保存',
+  connectAndImport: '连接并导入',
   applying: '保存中…',
   savedProvider: '已保存 {provider}。',
   credentialConfigured: 'API 密钥已配置',
@@ -197,4 +207,12 @@ export const zh: { [Key in keyof typeof en]: string } = {
   onboardingSave: '保存并继续',
   onboardingSaving: '保存中…',
   keyRequired: '请输入 API 密钥后继续。',
+  usageTitle: '套餐用量',
+  usageRefresh: '刷新用量',
+  usageLoading: '正在加载用量…',
+  usageError: '暂时无法获取用量',
+  usageStale: '显示上一次成功获取的值',
+  usage5h: '5 小时',
+  usage1w: '1 周',
+  usage1m: '1 月',
 }

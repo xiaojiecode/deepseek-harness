@@ -1,0 +1,125 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  background: #101114;
+  color: #f5f4f0;
+  font-synthesis: none;
+  --ink: #101114;
+  --paper: #f4f3ee;
+  --muted: #a7a8ad;
+  --line: #303238;
+  --coral: #ff6b4a;
+  --mint: #60d6b0;
+  --sky: #75a7ff;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; overflow-x: hidden; background: var(--ink); color: #f5f4f0; }
+a { color: inherit; text-decoration: none; }
+
+.topbar {
+  height: 64px;
+  padding: 0 5vw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(16, 17, 20, 0.96);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; white-space: nowrap; }
+.brand img { border-radius: 6px; }
+nav { display: flex; align-items: center; gap: 26px; font-size: 14px; color: #d2d1cc; }
+nav a:hover { color: #fff; }
+.nav-download { color: var(--coral); font-weight: 700; }
+
+.hero {
+  height: calc(100svh - 64px);
+  min-height: 540px;
+  max-height: 820px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 72px 7vw;
+  isolation: isolate;
+  background: url("./assets/app-models.zh.png") center 36% / cover no-repeat;
+}
+
+.hero::before { content: ""; position: absolute; inset: 0; z-index: -1; background: rgba(10, 11, 13, 0.78); }
+.hero-content { width: 100%; max-width: 760px; min-width: 0; }
+.eyebrow { margin: 0 0 18px; color: var(--mint); font-size: 13px; font-weight: 800; text-transform: uppercase; }
+.eyebrow.dark { color: #16765e; }
+h1, h2, h3, p { letter-spacing: 0; }
+h1 { margin: 0; max-width: 760px; font-size: 58px; line-height: 1.04; }
+.hero-copy { margin: 24px 0 0; max-width: 660px; font-size: 20px; line-height: 1.7; color: #d7d7d4; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+.primary-action, .secondary-action { min-height: 46px; display: inline-flex; align-items: center; justify-content: center; padding: 0 20px; border: 1px solid transparent; border-radius: 6px; font-size: 15px; font-weight: 750; }
+.primary-action { background: var(--coral); color: #17120f; }
+.primary-action:hover { background: #ff8267; }
+.secondary-action { border-color: #73757d; background: rgba(16, 17, 20, 0.62); }
+.secondary-action:hover { border-color: #f5f4f0; }
+.release-note { margin: 18px 0 0; color: #a7a8ad; font-size: 13px; }
+
+.signal-band { min-height: 112px; display: grid; grid-template-columns: repeat(3, 1fr); padding: 0 7vw; border-bottom: 1px solid var(--line); }
+.signal-band div { display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 24px 4vw 24px 0; border-right: 1px solid var(--line); }
+.signal-band div + div { padding-left: 4vw; }
+.signal-band div:last-child { border-right: 0; }
+.signal-band strong { font-size: 17px; }
+.signal-band span { color: var(--muted); font-size: 13px; }
+
+.section { padding: 104px 7vw; }
+.section-heading { max-width: 760px; }
+.section-heading h2, .download-band h2 { margin: 0; font-size: 42px; line-height: 1.15; }
+.section-heading > p:last-child { margin: 20px 0 0; color: inherit; opacity: 0.72; font-size: 17px; line-height: 1.75; }
+.section-light { background: var(--paper); color: #1a1b1e; }
+.feature-list { margin-top: 68px; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid #c7c7c2; }
+.feature-list article { padding: 28px 34px 10px 0; border-right: 1px solid #c7c7c2; }
+.feature-list article + article { padding-left: 34px; }
+.feature-list article:last-child { border-right: 0; }
+.feature-index { color: var(--coral); font-size: 13px; font-weight: 800; }
+.feature-list h3 { margin: 28px 0 14px; font-size: 24px; }
+.feature-list p { margin: 0; color: #5f6065; line-height: 1.75; }
+
+.opencode-section { background: #17191d; }
+.product-shot { margin: 56px 0 0; }
+.product-shot img { display: block; width: 100%; height: auto; border: 1px solid #3b3e45; border-radius: 6px; background: #fff; }
+.product-shot figcaption { margin-top: 14px; color: var(--muted); font-size: 13px; }
+
+.build-section { background: #e8edf5; color: #16181b; }
+pre { margin: 48px 0 0; padding: 28px; overflow-x: auto; border: 1px solid #b8c3d1; border-radius: 6px; background: #11151a; color: #dff9ef; font-size: 14px; line-height: 1.8; }
+.build-links { display: flex; gap: 28px; margin-top: 22px; color: #245caa; font-weight: 700; }
+.build-links a:hover { text-decoration: underline; }
+
+.download-band { padding: 72px 7vw; display: flex; align-items: center; justify-content: space-between; gap: 40px; border-top: 1px solid var(--line); }
+.download-band .eyebrow { color: var(--sky); }
+footer { min-height: 88px; padding: 24px 7vw; display: flex; align-items: center; gap: 28px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+footer span:nth-child(2) { flex: 1; }
+footer a { color: #e8e7e2; }
+
+@media (max-width: 760px) {
+  .topbar { padding: 0 20px; }
+  .brand span { font-size: 14px; }
+  nav a:not(.nav-download) { display: none; }
+  .hero { padding: 48px 22px; background-position: 58% center; }
+  .hero-content, .hero-copy { max-width: 100%; }
+  h1 { font-size: 40px; }
+  .hero-copy { overflow-wrap: anywhere; font-size: 17px; }
+  .hero-actions { flex-direction: column; align-items: stretch; }
+  .signal-band { grid-template-columns: 1fr; padding: 18px 22px; }
+  .signal-band div, .signal-band div + div { padding: 16px 0; border-right: 0; border-bottom: 1px solid var(--line); }
+  .signal-band div:last-child { border-bottom: 0; }
+  .section { padding: 72px 22px; }
+  .section-heading h2, .download-band h2 { font-size: 32px; }
+  .feature-list { grid-template-columns: 1fr; margin-top: 42px; }
+  .feature-list article, .feature-list article + article { padding: 26px 0; border-right: 0; border-bottom: 1px solid #c7c7c2; }
+  .feature-list article:last-child { border-bottom: 0; }
+  .download-band { padding: 58px 22px; align-items: stretch; flex-direction: column; }
+  footer { padding: 28px 22px; align-items: flex-start; flex-direction: column; gap: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }

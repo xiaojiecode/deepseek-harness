@@ -222,6 +222,7 @@ export class FakeApiClient implements IApiClient {
     providers: payload => this.record('llm.providers', payload, Promise.resolve(ok({ providers: [] }))),
     models: payload => this.record('llm.models', payload, Promise.resolve(ok({ groups: [], failures: [] }))),
     discoverModels: payload => this.record('llm.discoverModels', payload, Promise.resolve(ok({ models: [] }))),
+    subscriptionUsage: payload => this.record('llm.subscriptionUsage', payload, Promise.resolve(ok({ provider: payload.provider, fetchedAt: new Date(0).toISOString(), windows: [] }))),
   }
 
   /** When true, streams never fire onOpen (misbehaving-carrier material for the handshake timeout guard). */

@@ -57,6 +57,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
+import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { assertUsableApiKey, LlmError } from '@deepseek-ai/dsh-llm'
 import type { AdapterRegistrationHandle, DirectoryRegistrationHandle, LlmConfigurableProvider } from '@deepseek-ai/dsh-llm'
 import { deepEqualJson, installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
@@ -65,6 +66,7 @@ import { catalogProviderIds, catalogProviderTakesApiKey } from './catalog.ts'
 import { assertServiceable, Config, resolveProfiles } from './config.ts'
 import type { ResolvedPiAiProviderProfile } from './config.ts'
 import { discoverModels } from './discovery.ts'
+import { fetchOpenCodeGoModels, fetchOpenCodeGoUsage, importOpenCodeGoModels } from './opencode.ts'
 
 export { PiAiAdapter } from './adapter.ts'
 export type { PiAiAdapterOptions } from './adapter.ts'
@@ -80,6 +82,7 @@ export type {
   ResolvedPiAiProviderProfile,
 } from './config.ts'
 export { supportedProtocols } from './provider.ts'
+export { fetchOpenCodeGoModels, fetchOpenCodeGoUsage, importOpenCodeGoModels } from './opencode.ts'
 
 export const name = 'llm-pi-ai'
 export const inject = ['llm']
@@ -140,7 +143,9 @@ function directoryEntries(
   // every request. Catalog *membership* is unaffected, so `declare` above still
   // answers what pi-ai ships.
   for (const provider of catalog) {
-    if (catalogProviderTakesApiKey(provider)) declare(provider, provider)
+    if (catalogProviderTakesApiKey(provider)) {
+      declare(provider, provider === 'opencode-go' ? 'OpenCode Zen Go' : provider)
+    }
   }
   for (const [provider, profile] of profiles) declare(provider, profile.displayName)
   return [...entries.values()]
@@ -182,12 +187,23 @@ export function apply(ctx: Context, config: Config): void {
     // handing pi-ai `undefined` would let it pick up an unrelated ambient key
     // (OPENAI_API_KEY and friends), billing another tenant for a request the
     // deployment meant to authenticate differently.
-    if (ref === undefined) return undefined
+    if (ref === undefined) {
+      if (provider === 'opencode-go') {
+        return launchEnvironmentOf(ctx).get('OPENCODE_API_KEY')?.value
+      }
+      return undefined
+    }
     const credentials = ctx.get('credentials')
-    const hit = credentials !== undefined
-      ? (await credentials.resolve(ref))?.value
-      // Without the seam the environment is the whole credential plane.
-      : launchEnvironmentOf(ctx).get(ref)?.value
+    const resolveRef = async (target: string): Promise<string | undefined> => credentials !== undefined
+      ? (await credentials.resolve(credentialRef(target)))?.value
+      : launchEnvironmentOf(ctx).get(target)?.value
+    let hit = await resolveRef(ref)
+    // Older profiles may still carry the route-derived reference. OpenCode Go
+    // deliberately converges both that spelling and the upstream environment
+    // name on the canonical shared credential.
+    if (hit === undefined && provider === 'opencode-go' && ref !== 'OPENCODE_API_KEY') {
+      hit = await resolveRef('OPENCODE_API_KEY')
+    }
     if (hit !== undefined && hit.length > 0) return assertUsableApiKey(hit, 'llm-pi-ai', ref)
     throw new LlmError(
       `llm-pi-ai: no credential for provider route "${provider}"; its profile resolves ${ref}, which is not`
@@ -196,6 +212,60 @@ export function apply(ctx: Context, config: Config): void {
       'MISSING_CREDENTIAL',
     )
   }
+
+  const resolveOpenCodeGoKey = async (): Promise<string> => {
+    const profile = profiles().get('opencode-go')
+    const key = profile === undefined
+      ? launchEnvironmentOf(ctx).get('OPENCODE_API_KEY')?.value
+      : await resolveApiKey('opencode-go', profile)
+    if (key === undefined || key.length === 0) throw new LlmError('OpenCode Go requires OPENCODE_API_KEY', 'MISSING_CREDENTIAL')
+    return key
+  }
+
+  ctx.llm.registerSubscriptionUsage('opencode-go', async options =>
+    fetchOpenCodeGoUsage(await resolveOpenCodeGoKey(), options.signal))
+
+  let syncInFlight: Promise<void> | undefined
+  let syncTimer: ReturnType<typeof setTimeout> | undefined
+  let syncAbort: AbortController | undefined
+  const syncOpenCodeGo = (): void => {
+    if (syncInFlight !== undefined) return
+    syncInFlight = (async () => {
+      const settings = ctx.get('settings')
+      if (settings === undefined || profiles().get('opencode-go') === undefined) return
+      const controller = new AbortController()
+      syncAbort = controller
+      const listed = await fetchOpenCodeGoModels(await resolveOpenCodeGoKey(), controller.signal)
+      if (listed.length === 0) return
+      const models = importOpenCodeGoModels(listed)
+      if (models.length === 0) return
+      const current = settings.get(NS) as Config | undefined
+      const currentModels = current?.providers?.['opencode-go']?.models
+      if (deepEqualJson(currentModels, models)) return
+      await settings.mutate(NS, [{ op: 'set', path: ['providers', 'opencode-go', 'models'], value: models }])
+    })().catch((error: unknown) => {
+      // A failed refresh must never replace the last successful directory.
+      ctx.logger.warn('llm-pi-ai: OpenCode Go model sync failed; keeping the previous catalog')
+      ctx.logger.warn(error)
+    }).finally(() => {
+      syncInFlight = undefined
+      syncAbort = undefined
+    })
+  }
+  const scheduleOpenCodeGoSync = (): void => {
+    if (syncTimer !== undefined) clearTimeout(syncTimer)
+    syncTimer = setTimeout(() => { syncTimer = undefined; syncOpenCodeGo() }, 0)
+  }
+  ctx.effect(() => () => {
+    if (syncTimer !== undefined) clearTimeout(syncTimer)
+    syncAbort?.abort()
+  }, 'llm-pi-ai: OpenCode Go sync lifecycle')
+  ctx.effect(() => {
+    const dispose = ctx.on('credentials/updated', (ref) => {
+      if (ref === 'OPENCODE_API_KEY' || ref === 'OPENCODE_GO_API_KEY') scheduleOpenCodeGoSync()
+    })
+    return () => { dispose() }
+  }, 'llm-pi-ai: OpenCode Go credential sync')
 
   const adapter = new PiAiAdapter({
     profiles,
@@ -307,6 +377,14 @@ export function apply(ctx: Context, config: Config): void {
         ctx.logger.error('llm-pi-ai: keeping the previous configurable-provider directory after a refused update')
         ctx.logger.error(error)
       }
+      scheduleOpenCodeGoSync()
     },
   })
+  // First boot and each subsequent settings/credential change share the same
+  // coalesced sync; a six-hour timer provides periodic reconciliation.
+  scheduleOpenCodeGoSync()
+  const interval = setInterval(scheduleOpenCodeGoSync, 6 * 60 * 60 * 1000)
+  ctx.effect(() => {
+    return () => { clearInterval(interval) }
+  }, 'llm-pi-ai: OpenCode Go sync timer')
 }

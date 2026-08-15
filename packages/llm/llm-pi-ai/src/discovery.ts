@@ -26,6 +26,7 @@ import { INVALID_CREDENTIAL_CODE, LlmError, normalizeApiKey } from '@deepseek-ai
 import type { LlmDiscoveredModel, LlmModelDiscoveryRequest } from '@deepseek-ai/dsh-llm'
 import { attributionHeaders } from '@deepseek-ai/dsh-llm'
 import { catalogModels } from './catalog.ts'
+import { fetchOpenCodeGoModels } from './opencode.ts'
 
 /**
  * Protocols whose model listing this module can read: the two that speak
@@ -196,6 +197,18 @@ export async function discoverModels(
   request: LlmModelDiscoveryRequest,
   storedApiKey?: () => Promise<string | undefined>,
 ): Promise<readonly LlmDiscoveredModel[]> {
+  if (request.provider === 'opencode-go') {
+    const supplied = request.apiKey ?? await storedApiKey?.()
+    if (supplied === undefined) throw new LlmError('OpenCode Go requires an API key', INVALID_CREDENTIAL_CODE)
+    const listed = await fetchOpenCodeGoModels(supplied, request.signal)
+    const known = catalogModels('opencode-go')
+    return listed.map((model): LlmDiscoveredModel => {
+      const metadata = known.get(model.id)
+      return metadata === undefined
+        ? { ...model, unavailableReason: 'missing-model-metadata' as const }
+        : { id: model.id, name: metadata.name, contextWindow: metadata.contextWindow, maxTokens: metadata.maxTokens }
+    })
+  }
   // A catalog route already has its answer, and a better one: the installed
   // entries carry context windows and output caps no listing endpoint reports.
   if (request.provider !== undefined) {

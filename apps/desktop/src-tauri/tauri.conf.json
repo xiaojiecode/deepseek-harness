@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "DeepSeek Harness Desktop",
+  "version": "0.1.0-1",
+  "identifier": "com.xiaojiecode.deepseek-harness",
+  "build": {
+    "beforeDevCommand": "pnpm --dir ../.. dsh web --host 127.0.0.1 --port 3080",
+    "devUrl": "http://127.0.0.1:3080",
+    "beforeBuildCommand": "pnpm --dir ../.. run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "DeepSeek Harness Desktop",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 640,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:3080 ws://127.0.0.1:3080; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE4NjEwQzUyMTAzQUFCMUEKUldRYXF6b1FVZ3hoR0tMcEQ2YTZwenN2NXgxOXRSYk43NWJlcHptc0pNRUs5ZDk2V2tMeGJlckQK",
+      "endpoints": [
+        "https://github.com/xiaojiecode/deepseek-harness/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

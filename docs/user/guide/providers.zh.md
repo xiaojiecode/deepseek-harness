@@ -18,6 +18,12 @@
 
 使用原生认证的提供方需要各自的原生凭据。Bedrock、Vertex、Azure 和 Codex 分别使用 AWS 凭据与区域、ADC 项目、`api-version` 和 OAuth；只填写 API 密钥字段无法完成配置。
 
+### OpenCode Go
+
+从目录中选择 **OpenCode Zen Go** 并输入 Go 密钥。页面会先调用 OpenCode 管理接口校验密钥，导入当前版本 pi-ai 已知的模型，并定期同步目录。凭据引用固定为 `OPENCODE_API_KEY`，因此已有环境密钥或已存凭据可以同时供 OpenCode Zen 和 Go 使用。
+
+提供方行会显示 5 小时、1 周和 1 月三个套餐用量窗口。OpenCode 返回但当前应用缺少 pi-ai 元数据的模型会标记为不可用，直到更新应用；不会猜测协议或容量并导入。
+
 ## 添加自定义提供方
 
 对于公司网关、自建服务器或已安装目录中不存在的提供方，选择**添加自定义提供方**。提供小写 Provider ID、基础 URL、API 协议、凭据和至少一个模型。

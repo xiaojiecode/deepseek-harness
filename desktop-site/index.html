@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="DeepSeek Harness Desktop：基于 Tauri 2 的社区桌面发行版，集成工作区、模型、插件与 OpenCode Go 套餐用量。">
+    <meta name="theme-color" content="#101114">
+    <title>DeepSeek Harness Desktop</title>
+    <link rel="icon" href="./assets/icon.png" type="image/png">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="DeepSeek Harness Desktop 首页">
+        <img src="./assets/icon.png" alt="" width="32" height="32">
+        <span>DeepSeek Harness Desktop</span>
+      </a>
+      <nav aria-label="主导航">
+        <a href="#features">功能</a>
+        <a href="#opencode">OpenCode Go</a>
+        <a href="#build">构建</a>
+        <a class="nav-download" href="https://github.com/xiaojiecode/deepseek-harness/releases/latest">下载</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-content">
+          <p class="eyebrow">社区桌面发行版 · Tauri 2</p>
+          <h1 id="hero-title">DeepSeek Harness Desktop</h1>
+          <p class="hero-copy">把工作区、会话、模型、工具、权限与插件带进原生桌面窗口。无需单独管理浏览器标签页，打开应用即可继续工作。</p>
+          <div class="hero-actions">
+            <a class="primary-action" href="https://github.com/xiaojiecode/deepseek-harness/releases/latest">下载 Windows x64</a>
+            <a class="secondary-action" href="https://github.com/xiaojiecode/deepseek-harness">查看源码</a>
+          </div>
+          <p class="release-note">Windows 10/11 · NSIS 与 MSI 安装包 · 需先安装 dsh CLI</p>
+        </div>
+      </section>
+
+      <section class="signal-band" aria-label="产品特点">
+        <div><strong>原生桌面</strong><span>系统 WebView 与本地 Host</span></div>
+        <div><strong>插件架构</strong><span>沿用 DeepSeek Harness 能力</span></div>
+        <div><strong>签名更新</strong><span>从 GitHub Releases 自动升级</span></div>
+      </section>
+
+      <section id="features" class="section section-light">
+        <div class="section-heading">
+          <p class="eyebrow dark">桌面工作台</p>
+          <h2>为持续使用而设计</h2>
+          <p>桌面壳不改变 Harness 的插件模型，只把日常入口、窗口生命周期和平台安装体验整合到一起。</p>
+        </div>
+        <div class="feature-list">
+          <article>
+            <span class="feature-index">01</span>
+            <h3>完整工作区</h3>
+            <p>管理多个工作区和会话，在对话、轨迹与任务详情之间快速切换。</p>
+          </article>
+          <article>
+            <span class="feature-index">02</span>
+            <h3>模型与权限</h3>
+            <p>在设置页连接提供方、选择模型，并为新会话配置权限模式与 Agent 预设。</p>
+          </article>
+          <article>
+            <span class="feature-index">03</span>
+            <h3>本地可扩展</h3>
+            <p>继续使用 Cordis 插件体系、工具与配置文件，桌面版不会锁住现有工作流。</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="opencode" class="section opencode-section">
+        <div class="section-heading">
+          <p class="eyebrow">OpenCode Go</p>
+          <h2>连接、导入、查看套餐用量</h2>
+          <p>输入 <code>OPENCODE_API_KEY</code> 后验证套餐并导入官方模型。在提供方行内直接查看 5 小时、1 周与 1 月用量窗口。</p>
+        </div>
+        <figure class="product-shot">
+          <img src="./assets/app-models.zh.png" alt="DeepSeek Harness Desktop 模型设置页面" width="1600" height="866">
+          <figcaption>模型设置集中管理 Provider 与凭据；OpenCode Go 用量会随请求完成自动刷新。</figcaption>
+        </figure>
+      </section>
+
+      <section id="build" class="section build-section">
+        <div class="section-heading">
+          <p class="eyebrow dark">开放源码</p>
+          <h2>在你的平台上构建</h2>
+          <p>安装包当前需要系统 PATH 中已有 dsh CLI。桌面壳与上游 Harness 放在同一个 pnpm workspace 中，准备 Node.js、Rust 和 Tauri 2 平台依赖即可开发。</p>
+        </div>
+        <pre aria-label="源码构建命令"><code>npm install --global @deepseek-ai/dsh
+git clone https://github.com/xiaojiecode/deepseek-harness.git
+cd deepseek-harness
+pnpm install
+pnpm run desktop:dev</code></pre>
+        <div class="build-links">
+          <a href="https://github.com/xiaojiecode/deepseek-harness#build-from-source">构建文档</a>
+          <a href="https://github.com/deepseek-ai/deepseek-harness">官方上游</a>
+        </div>
+      </section>
+
+      <section class="download-band">
+        <div>
+          <p class="eyebrow">Desktop preview</p>
+          <h2>下载并开始一个新会话</h2>
+        </div>
+        <a class="primary-action" href="https://github.com/xiaojiecode/deepseek-harness/releases/latest">前往 GitHub Releases</a>
+      </section>
+    </main>
+
+    <footer>
+      <span>DeepSeek Harness Desktop</span>
+      <span>社区维护的公开 Fork，不是 DeepSeek 官方桌面发行版。</span>
+      <a href="https://github.com/xiaojiecode/deepseek-harness/blob/master/LICENSE">MIT License</a>
+    </footer>
+  </body>
+</html>

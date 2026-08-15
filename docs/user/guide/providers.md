@@ -18,6 +18,12 @@ Choose **Add provider**, select a provider such as Anthropic or OpenAI, enter it
 
 Providers with native authentication need their native credentials instead. Bedrock, Vertex, Azure, and Codex use AWS credentials and a region, an ADC project, an `api-version`, and OAuth respectively; filling only the API-key field does not configure them.
 
+### OpenCode Go
+
+Choose **OpenCode Zen Go** from the catalog and enter the Go key. The page validates it against OpenCode's management API, imports the models known by this build, and keeps the catalog synchronized periodically. The credential reference is always `OPENCODE_API_KEY`, so an existing environment key or stored credential is reused by both OpenCode Zen and Go.
+
+The provider row shows the 5-hour, 1-week, and 1-month subscription windows. A model returned by OpenCode but missing from the installed pi-ai metadata is shown as unavailable until the application is updated; it is never imported with guessed capacities.
+
 ## Add a custom provider
 
 Choose **Add a custom provider** for a company gateway, self-hosted server, or provider absent from the installed catalog. Supply a lowercase Provider ID, base URL, API protocol, credential, and at least one model.

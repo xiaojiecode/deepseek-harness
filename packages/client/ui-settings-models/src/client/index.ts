@@ -110,6 +110,9 @@ export function apply(ctx: ClientContext): void {
       }),
       ctx.remote.$on('credentials/updated', refreshModels),
       ctx.remote.$on('llm/adapters-updated', refreshModels),
+      ctx.remote.$on('llm/subscription-usage-updated', (provider) => {
+        if (provider === 'opencode-go') refreshModels()
+      }),
       ctx.on('connection/reset', refreshAll),
     ]
     return () => { for (const dispose of disposers) dispose() }

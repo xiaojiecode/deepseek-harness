@@ -17,6 +17,9 @@ import type {
   LlmModelInfo,
   LlmResolvedModelInfo,
   LlmProviderInfo,
+  LlmSubscriptionUsageOptions,
+  LlmSubscriptionUsageSnapshot,
+  LlmSubscriptionUsageWindow,
   ModelModality,
   StreamChunk,
 } from './types.ts'
@@ -288,6 +291,10 @@ export class LlmRuntime extends Service {
     string,
     (request: LlmModelDiscoveryRequest) => Promise<readonly LlmDiscoveredModel[]>
   >()
+  private subscriptionReaders = new Map<
+    string,
+    (options: LlmSubscriptionUsageOptions) => Promise<LlmSubscriptionUsageSnapshot>
+  >()
 
   constructor(ctx: Context) {
     super(ctx, 'llm')
@@ -520,6 +527,60 @@ export class LlmRuntime extends Service {
     return () => void dispose()
   }
 
+  /** Register a provider-owned subscription usage reader for host surfaces. */
+  registerSubscriptionUsage(
+    provider: string,
+    reader: (options: LlmSubscriptionUsageOptions) => Promise<LlmSubscriptionUsageSnapshot>,
+  ): () => void {
+    const dispose = this.ctx.effect(function* (this: LlmRuntime) {
+      if (provider.length === 0) throw new LlmError('subscription usage needs a provider', 'INVALID_USAGE')
+      if (this.subscriptionReaders.has(provider)) {
+        throw new LlmError(`subscription usage for "${provider}" is already registered`, 'DUPLICATE_USAGE')
+      }
+      this.subscriptionReaders.set(provider, reader)
+      yield () => { this.subscriptionReaders.delete(provider) }
+    }.bind(this), 'llm.registerSubscriptionUsage()')
+    return () => void dispose()
+  }
+
+  /** Read one provider subscription snapshot without exposing credentials. */
+  async subscriptionUsage(
+    provider: string,
+    options: LlmSubscriptionUsageOptions = {},
+  ): Promise<LlmSubscriptionUsageSnapshot> {
+    const reader = this.subscriptionReaders.get(provider)
+    if (reader === undefined) throw new LlmError(`no subscription usage is registered for "${provider}"`, 'NO_USAGE')
+    const snapshot = await reader(options)
+    const candidate = snapshot as unknown as { provider?: unknown; fetchedAt?: unknown; windows?: unknown } | null
+    if (candidate === null || typeof candidate !== 'object'
+      || candidate.provider !== provider || typeof candidate.fetchedAt !== 'string' || !Array.isArray(candidate.windows)) {
+      throw new LlmError(`subscription usage for "${provider}" returned invalid data`, 'INVALID_USAGE')
+    }
+    const seen = new Set<string>()
+    const sourceWindows = candidate.windows as readonly LlmSubscriptionUsageWindow[]
+    const windows = sourceWindows.map((window: LlmSubscriptionUsageWindow) => {
+      const id = window.id
+      if (!['5h', '1w', '1m'].includes(id) || seen.has(id)) {
+        throw new LlmError(`subscription usage for "${provider}" returned invalid windows`, 'INVALID_USAGE')
+      }
+      seen.add(id)
+      if (!Number.isFinite(window.percent) || window.percent < 0 || window.percent > 100) {
+        throw new LlmError(`subscription usage for "${provider}" returned an invalid percentage`, 'INVALID_USAGE')
+      }
+      const status: unknown = window.status
+      if (status !== 'ok' && status !== 'rate-limited') {
+        throw new LlmError(`subscription usage for "${provider}" returned an invalid status`, 'INVALID_USAGE')
+      }
+      return { ...window, id }
+    })
+    if (windows.length !== 3) {
+      throw new LlmError(`subscription usage for "${provider}" returned incomplete windows`, 'INVALID_USAGE')
+    }
+    const order = { '5h': 0, '1w': 1, '1m': 2 } as const
+    windows.sort((left, right) => order[left.id] - order[right.id])
+    return { provider, fetchedAt: snapshot.fetchedAt, windows }
+  }
+
   /**
    * Interrogate one provider endpoint for the models it advertises. The
    * request describes a draft, not a stored route, so nothing here reads or
@@ -553,6 +614,7 @@ export class LlmRuntime extends Service {
         ...model.name === undefined ? {} : { name: model.name },
         ...model.contextWindow === undefined ? {} : { contextWindow: model.contextWindow },
         ...model.maxTokens === undefined ? {} : { maxTokens: model.maxTokens },
+        ...model.unavailableReason === undefined ? {} : { unavailableReason: model.unavailableReason },
       })
     }
     return models

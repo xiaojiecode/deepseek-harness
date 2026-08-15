@@ -42,6 +42,7 @@ export const discoveredModelViewSchema = z.object({
   name: z.string().min(1).optional(),
   contextWindow: z.number().int().positive().optional(),
   maxTokens: z.number().int().positive().optional(),
+  unavailableReason: z.literal('missing-model-metadata').optional(),
 }) satisfies z.ZodType<Wire<DiscoveredModelView>>
 
 /** llm.discoverModels request payload. */
@@ -62,3 +63,21 @@ export const llmDiscoverModelsRequestSchema = z.object({
 export const llmDiscoverModelsValueSchema = z.object({
   models: z.array(discoveredModelViewSchema),
 }) satisfies z.ZodType<Wire<ResponseValue<'llm.discoverModels'>>>
+
+const usageWindowSchema = z.object({
+  id: z.union([z.literal('5h'), z.literal('1w'), z.literal('1m')]),
+  percent: z.number().min(0).max(100),
+  status: z.union([z.literal('ok'), z.literal('rate-limited')]),
+  resetsAt: z.string().optional(),
+})
+
+export const llmSubscriptionUsageRequestSchema = z.object({
+  provider: z.string().min(1),
+  refresh: z.boolean().optional(),
+}) satisfies z.ZodType<Wire<RequestPayload<'llm.subscriptionUsage'>>>
+
+export const llmSubscriptionUsageValueSchema = z.object({
+  provider: z.string().min(1),
+  fetchedAt: z.string().min(1),
+  windows: z.array(usageWindowSchema),
+}) satisfies z.ZodType<Wire<ResponseValue<'llm.subscriptionUsage'>>>

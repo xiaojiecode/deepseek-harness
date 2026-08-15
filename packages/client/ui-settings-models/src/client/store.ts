@@ -67,6 +67,7 @@ export function messageOf(error: unknown): string {
  * @returns the derived reference name (e.g. `MINIMAX_CN_API_KEY`).
  */
 export function deriveKeyRef(provider: string): string {
+  if (provider === 'opencode-go' || provider === 'opencode') return 'OPENCODE_API_KEY'
   return `${provider.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}_API_KEY`
 }
 
